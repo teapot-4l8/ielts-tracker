@@ -52,9 +52,9 @@ npm run dev
 
 ## 📸 Screenshots
 
-| **Dashboard & Trends** | **AI Writing Grader** |
-| ---------------------- | --------------------- |
-|                        |                       |
+| **Dashboard & Trends**                                       | **AI Writing Grader**                                        |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| ![image-20260404195109403](README.assets/image-20260404195109403.png) | ![image-20260404195156659](README.assets/image-20260404195156659.png) |
 
 ## 📝 Future Roadmap
 
