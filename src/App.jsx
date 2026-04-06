@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { CheckCircle, BarChart2, AlertCircle, Timer } from "lucide-react";
+import { CheckCircle, BarChart2, AlertCircle, Timer, ListTodo } from "lucide-react";
 
 import { useRecords } from "./hooks/useRecords";
 import { ScoreInputForm } from "./components/ScoreInputForm";
 import { ProgressDashboard } from "./components/ProgressDashboard";
 import { TestTimer } from "./components/TestTimer";
+import { DailyTodo } from "./components/DailyTodo";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("record");
@@ -50,6 +51,13 @@ export default function App() {
             >
               Timer
             </NavButton>
+            <NavButton
+              active={activeTab === "todo"}
+              onClick={() => setActiveTab("todo")}
+              icon={<ListTodo className="w-4 h-4" />}
+            >
+              Daily Tasks
+            </NavButton>
           </div>
         </div>
       </nav>
@@ -78,6 +86,8 @@ export default function App() {
         )}
 
         {activeTab === "timer" && <TestTimer />}
+
+        {activeTab === "todo" && <DailyTodo />}
       </main>
 
       {/* Toast notification */}
