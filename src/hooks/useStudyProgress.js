@@ -1,6 +1,6 @@
+import { EventBus } from "../utils/eventBus";
+
 /**
- * useStudyProgress
- *
  * Manages per-section / per-passage study progress, stored separately from
  * test-score records so either dataset can evolve independently.
  *
@@ -59,7 +59,52 @@ export function useStudyProgress() {
     save(next);
   }, []);
 
-  /** Ensure a book/test entry exists and return a fresh copy of progress. */
+  /**
+   * Mark "done" steps from a record's filled bands.
+   * Call this after a record is saved in the score tracker.
+   * Only marks as done the specific sections/passages that have a non-null score
+   * in listeningSections / readingPassages — not the whole subject.
+   */
+  const markDoneFromRecord = useCallback((record) => {
+    const { book, testNum, listeningSections, readingPassages } = record;
+    const key = `${book}-${testNum}`;
+
+    setProgress((prev) => {
+      const entry = prev[key] ?? {
+        listening: makeListeningSections(),
+        reading:   makeReadingPassages(),
+      };
+
+      let listening = entry.listening;
+      let reading   = entry.reading;
+
+      if (Array.isArray(listeningSections)) {
+        listening = listening.map((s, i) =>
+          listeningSections[i] !== null && listeningSections[i] !== undefined
+            ? { ...s, done: true }
+            : s
+        );
+      }
+      if (Array.isArray(readingPassages)) {
+        reading = reading.map((s, i) =>
+          readingPassages[i] !== null && readingPassages[i] !== undefined
+            ? { ...s, done: true }
+            : s
+        );
+      }
+
+      // Skip persist if nothing changed
+      if (
+        listening === entry.listening &&
+        reading === entry.reading
+      ) return prev;
+
+      const next = { ...prev, [key]: { ...entry, listening, reading } };
+      save(next);
+      EventBus.emit("study-progress-changed", next);
+      return next;
+    });
+  }, []);
   const ensureEntry = useCallback(
     (book, testNum, current) => {
       const key = `${book}-${testNum}`;
@@ -99,6 +144,7 @@ export function useStudyProgress() {
           [key]: { ...entry, [subject]: list },
         };
         save(next);
+        EventBus.emit("study-progress-changed", next);
         return next;
       });
     },
@@ -141,10 +187,11 @@ export function useStudyProgress() {
   const deleteEntry = useCallback(
     (book, testNum) => {
       setProgress((prev) => {
-        const next = { ...prev };
-        delete next[`${book}-${testNum}`];
-        save(next);
-        return next;
+      const next = { ...prev };
+      delete next[`${book}-${testNum}`];
+      save(next);
+      EventBus.emit("study-progress-changed", next);
+      return next;
       });
     },
     []
@@ -166,11 +213,12 @@ export function useStudyProgress() {
           },
         };
         save(next);
+        EventBus.emit("study-progress-changed", next);
         return next;
       });
     },
     []
   );
 
-  return { progress, toggleStep, getEntry, allEntries, deleteEntry, initEntry };
+  return { progress, toggleStep, getEntry, allEntries, deleteEntry, initEntry, markDoneFromRecord, setProgress };
 }

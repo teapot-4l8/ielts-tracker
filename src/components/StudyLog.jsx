@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
-  BookOpen, Headphones, ChevronDown, ChevronRight,
-  Plus, Trash2, Check,
+  BookOpen, Headphones, Plus, Trash2, Check,
 } from "lucide-react";
 import { useStudyProgress } from "../hooks/useStudyProgress";
+import { EventBus } from "../utils/eventBus";
 
 // ── Step definitions ──────────────────────────────────────────────────────────
 
@@ -14,8 +14,8 @@ const L_STEPS = [
 ];
 
 const R_STEPS = [
-  { key: "done",   label: "Done",    color: "bg-emerald-500" },
-  { key: "vocab",  label: "Vocab",   color: "bg-teal-500"   },
+  { key: "done",   label: "Done",   color: "bg-emerald-500" },
+  { key: "vocab",  label: "Vocab",  color: "bg-teal-500"   },
   { key: "review", label: "Review",  color: "bg-green-600"  },
 ];
 
@@ -52,7 +52,7 @@ function Ring({ ratio, color = "#6366f1", size = 30, stroke = 3 }) {
   );
 }
 
-// ── Step badge (pill checkbox) ────────────────────────────────────────────────
+// ── Step badge (pill checkbox) ───────────────────────────────────────────────
 
 function StepBadge({ checked, label, bgColor, onClick }) {
   return (
@@ -95,7 +95,7 @@ function ItemRow({ rowLabel, steps, item, onToggle }) {
   );
 }
 
-// ── Subject block (Listening | Reading) ──────────────────────────────────────
+// ── Subject block (Listening | Reading) ───────────────────────────────────────
 
 function SubjectBlock({ title, Icon, items, steps, accent, rowPrefix, onToggle }) {
   const checked = countChecked(items, steps);
@@ -104,7 +104,7 @@ function SubjectBlock({ title, Icon, items, steps, accent, rowPrefix, onToggle }
 
   return (
     <div className={`rounded-xl border overflow-hidden
-      ${allDone ? "border-slate-200 bg-slate-50/50" : "border-slate-200 bg-white"}`}>
+      ${allDone ? "border-indigo-200 bg-indigo-50/20" : "border-slate-200 bg-white"}`}>
       {/* header */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-100">
         <div className={`w-6 h-6 rounded-full flex items-center justify-center ${accent.iconBg}`}>
@@ -132,208 +132,110 @@ function SubjectBlock({ title, Icon, items, steps, accent, rowPrefix, onToggle }
   );
 }
 
-// ── Test card ─────────────────────────────────────────────────────────────────
-
-function TestCard({ book, testNum, entry, onToggleStep, onDelete }) {
-  const [open, setOpen] = useState(true);
-
-  const lChecked = countChecked(entry.listening, L_STEPS);
-  const lTotal   = totalSteps(entry.listening, L_STEPS);
-  const rChecked = countChecked(entry.reading, R_STEPS);
-  const rTotal   = totalSteps(entry.reading, R_STEPS);
-  const checked  = lChecked + rChecked;
-  const total    = lTotal + rTotal;
-  const allDone  = checked === total;
-
-  return (
-    <div className={`rounded-xl border shadow-sm overflow-hidden
-      ${allDone ? "border-indigo-200 bg-indigo-50/20" : "border-slate-200 bg-white"}`}>
-      {/* card header */}
-      <div
-        className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none hover:bg-slate-50/80 transition-colors"
-        onClick={() => setOpen((o) => !o)}
-      >
-        {open
-          ? <ChevronDown  className="w-4 h-4 text-slate-400 flex-shrink-0" />
-          : <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
-        }
-        <span className="font-bold text-slate-800">Test {testNum}</span>
-        {allDone && (
-          <span className="text-[10px] font-semibold text-indigo-500 bg-indigo-100 px-2 py-0.5 rounded-full">
-            All done ✓
-          </span>
-        )}
-        <div className="ml-auto flex items-center gap-3">
-          <span className="text-xs text-slate-400 tabular-nums">{checked}/{total}</span>
-          <Ring ratio={checked / total} color={allDone ? "#6366f1" : "#94a3b8"} size={28} stroke={3} />
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(book, testNum); }}
-            className="p-1 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors"
-            title="Delete this test's study record"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* expanded */}
-      {open && (
-        <div className="px-4 pb-4 pt-1 grid grid-cols-1 md:grid-cols-2 gap-3 border-t border-slate-100">
-          <SubjectBlock
-            title="Listening"
-            Icon={Headphones}
-            items={entry.listening}
-            steps={L_STEPS}
-            rowPrefix="S"
-            accent={{ iconBg: "bg-blue-100", iconColor: "text-blue-600", text: "text-blue-700", ring: "#3b82f6" }}
-            onToggle={(step, idx) => onToggleStep(book, testNum, "listening", idx, step)}
-          />
-          <SubjectBlock
-            title="Reading"
-            Icon={BookOpen}
-            items={entry.reading}
-            steps={R_STEPS}
-            rowPrefix="P"
-            accent={{ iconBg: "bg-emerald-100", iconColor: "text-emerald-600", text: "text-emerald-700", ring: "#10b981" }}
-            onToggle={(step, idx) => onToggleStep(book, testNum, "reading", idx, step)}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Book group ────────────────────────────────────────────────────────────────
-
-function BookGroup({ book, tests, onToggleStep, onDelete }) {
-  const [open, setOpen] = useState(true);
-
-  const { checked, total } = useMemo(() => {
-    let c = 0, t = 0;
-    for (const { entry } of tests) {
-      c += countChecked(entry.listening, L_STEPS) + countChecked(entry.reading, R_STEPS);
-      t += totalSteps(entry.listening, L_STEPS)   + totalSteps(entry.reading, R_STEPS);
-    }
-    return { checked: c, total: t };
-  }, [tests]);
-
-  const allDone = total > 0 && checked === total;
-
-  return (
-    <div className="space-y-3">
-      <button
-        className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border font-bold text-left transition-colors
-          ${allDone
-            ? "bg-indigo-50 border-indigo-200 text-indigo-800"
-            : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200"
-          }`}
-        onClick={() => setOpen((o) => !o)}
-      >
-        {open ? <ChevronDown className="w-5 h-5 flex-shrink-0" /> : <ChevronRight className="w-5 h-5 flex-shrink-0" />}
-        <span>Cambridge {book}</span>
-        <span className="text-sm font-normal text-slate-400 ml-1">
-          ({tests.length} test{tests.length > 1 ? "s" : ""})
-        </span>
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-400 tabular-nums">{checked}/{total}</span>
-          <Ring ratio={total > 0 ? checked / total : 0} color={allDone ? "#6366f1" : "#94a3b8"} size={32} stroke={3} />
-        </div>
-      </button>
-
-      {open && (
-        <div className="pl-4 space-y-3">
-          {tests.map(({ testNum, entry }) => (
-            <TestCard
-              key={testNum}
-              book={book}
-              testNum={testNum}
-              entry={entry}
-              onToggleStep={onToggleStep}
-              onDelete={onDelete}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Add entry form ────────────────────────────────────────────────────────────
-
-function AddEntryForm({ onAdd }) {
-  const [book,    setBook]    = useState(18);
-  const [testNum, setTestNum] = useState(1);
-
-  return (
-    <div className="flex flex-wrap items-center gap-3 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-      <span className="text-sm font-semibold text-slate-600">Add study entry:</span>
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-slate-500">Book</label>
-        <input
-          type="number" min={1} max={20} value={book}
-          onChange={(e) => setBook(e.target.value)}
-          className="w-16 text-sm border border-slate-200 rounded-lg px-2 py-1.5 text-center outline-none focus:border-indigo-400 bg-white"
-        />
-      </div>
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-slate-500">Test</label>
-        <input
-          type="number" min={1} max={4} value={testNum}
-          onChange={(e) => setTestNum(e.target.value)}
-          className="w-14 text-sm border border-slate-200 rounded-lg px-2 py-1.5 text-center outline-none focus:border-indigo-400 bg-white"
-        />
-      </div>
-      <button
-        onClick={() => onAdd(Number(book), Number(testNum))}
-        className="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors"
-      >
-        <Plus className="w-4 h-4" /> Add
-      </button>
-    </div>
-  );
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 
+const AVAILABLE_BOOKS = Array.from({ length: 19 }, (_, i) => i + 4); // 4–22
+
 export function StudyLog() {
-  const { progress, toggleStep, getEntry, allEntries, deleteEntry, initEntry } = useStudyProgress();
-  const [confirmDelete, setConfirmDelete] = useState(null);
+  const { progress, toggleStep, getEntry, allEntries, deleteEntry, initEntry, setProgress } = useStudyProgress();
 
-  // Group entries by book
-  const grouped = useMemo(() => {
-    const map = {};
-    for (const { book, testNum } of allEntries()) {
-      if (!map[book]) map[book] = [];
-      map[book].push({ testNum, entry: getEntry(book, testNum) });
-    }
-    return map;
-  }, [progress]);  // eslint-disable-line react-hooks/exhaustive-deps
+  // Re-load when another hook instance (e.g. App.jsx) writes to localStorage
+  useEffect(() => {
+    const reload = (updatedProgress) => setProgress(updatedProgress);
+    const off = EventBus.on("study-progress-changed", reload);
+    return off;
+  }, []);
 
-  const books = Object.keys(grouped).map(Number).sort((a, b) => a - b);
+  const [selectedBook, setSelectedBook] = useState(4);
+  const [selectedTest, setSelectedTest] = useState(1);
 
-  const handleAdd = (book, testNum) => {
-    initEntry(book, testNum);
+  // Collect all tests that have an entry for the selected book
+  const testsForBook = useMemo(() => {
+    return allEntries()
+      .filter((e) => e.book === selectedBook)
+      .map((e) => e.testNum)
+      .sort((a, b) => a - b);
+  }, [selectedBook, progress]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const entry = getEntry(selectedBook, selectedTest);
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleAdd = () => initEntry(selectedBook, selectedTest);
+
+  const handleDelete = () => {
+    deleteEntry(selectedBook, selectedTest);
+    setConfirmDelete(false);
   };
 
-  const handleDelete = (book, testNum) => setConfirmDelete({ book, testNum });
-
-  const confirmDel = () => {
-    if (confirmDelete) {
-      deleteEntry(confirmDelete.book, confirmDelete.testNum);
-      setConfirmDelete(null);
-    }
-  };
+  const hasEntry = entry !== null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Page header */}
       <div>
         <h3 className="text-xl font-bold text-slate-800">Study Log</h3>
-        <p className="text-sm text-slate-400 mt-0.5">Track your Listening & Reading progress step by step for each test</p>
+        <p className="text-sm text-slate-400 mt-0.5">Track your Listening & Reading progress step by step</p>
       </div>
 
-      {/* Add form */}
-      <AddEntryForm onAdd={handleAdd} />
+      {/* Controls: Book dropdown + Test dropdown + Add + Delete */}
+      <div className="flex flex-wrap items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+        {/* Book selector */}
+        <div className="flex items-center gap-2">
+          <BookOpen className="w-4 h-4 text-slate-400" />
+          <select
+            value={selectedBook}
+            onChange={(e) => {
+              const b = Number(e.target.value);
+              setSelectedBook(b);
+              const tests = allEntries()
+                .filter((x) => x.book === b)
+                .map((x) => x.testNum)
+                .sort((a, b) => a - b);
+              setSelectedTest(tests[0] ?? 1);
+            }}
+            className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white outline-none focus:border-indigo-400 cursor-pointer"
+          >
+            {AVAILABLE_BOOKS.map((b) => (
+              <option key={b} value={b}>Cambridge {b}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Test selector */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-slate-500 font-medium">Test</span>
+          <select
+            value={selectedTest}
+            onChange={(e) => setSelectedTest(Number(e.target.value))}
+            className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white outline-none focus:border-indigo-400 cursor-pointer"
+          >
+            {Array.from({ length: 4 }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto">
+          {/* Delete */}
+          {hasEntry && (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              title="Delete this test's study record"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+          {/* Add / Go */}
+          <button
+            onClick={handleAdd}
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors"
+          >
+            <Plus className="w-4 h-4" /> {hasEntry ? "Reset" : "Add"}
+          </button>
+        </div>
+      </div>
 
       {/* Legend */}
       <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
@@ -358,23 +260,32 @@ export function StudyLog() {
       </div>
 
       {/* Content */}
-      {books.length === 0 ? (
+      {!hasEntry ? (
         <div className="text-center py-14 bg-slate-50 rounded-xl border border-dashed border-slate-300">
           <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500 font-medium">No study entries yet</p>
-          <p className="text-slate-400 text-sm mt-1">Click "Add" above to create your first entry</p>
+          <p className="text-slate-500 font-medium">No entry for Cambridge {selectedBook} — Test {selectedTest}</p>
+          <p className="text-slate-400 text-sm mt-1">Click "Add" to create it</p>
         </div>
       ) : (
-        <div className="space-y-6">
-          {books.map((book) => (
-            <BookGroup
-              key={book}
-              book={book}
-              tests={grouped[book]}
-              onToggleStep={toggleStep}
-              onDelete={handleDelete}
-            />
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <SubjectBlock
+            title="Listening"
+            Icon={Headphones}
+            items={entry.listening}
+            steps={L_STEPS}
+            rowPrefix="S"
+            accent={{ iconBg: "bg-blue-100", iconColor: "text-blue-600", text: "text-blue-700", ring: "#3b82f6" }}
+            onToggle={(step, idx) => toggleStep(selectedBook, selectedTest, "listening", idx, step)}
+          />
+          <SubjectBlock
+            title="Reading"
+            Icon={BookOpen}
+            items={entry.reading}
+            steps={R_STEPS}
+            rowPrefix="P"
+            accent={{ iconBg: "bg-emerald-100", iconColor: "text-emerald-600", text: "text-emerald-700", ring: "#10b981" }}
+            onToggle={(step, idx) => toggleStep(selectedBook, selectedTest, "reading", idx, step)}
+          />
         </div>
       )}
 
@@ -385,18 +296,18 @@ export function StudyLog() {
             <h4 className="text-lg font-bold text-slate-800">Delete study record</h4>
             <p className="text-slate-600 text-sm">
               Are you sure you want to delete all progress for{" "}
-              <strong>Cambridge {confirmDelete.book} — Test {confirmDelete.testNum}</strong>?
+              <strong>Cambridge {selectedBook} — Test {selectedTest}</strong>?
               This cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
               <button
-                onClick={() => setConfirmDelete(null)}
+                onClick={() => setConfirmDelete(false)}
                 className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={confirmDel}
+                onClick={handleDelete}
                 className="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors"
               >
                 Delete

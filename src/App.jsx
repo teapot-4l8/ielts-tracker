@@ -2,6 +2,7 @@ import { useState } from "react";
 import { CheckCircle, BarChart2, AlertCircle, Timer, ListTodo } from "lucide-react";
 
 import { useRecords } from "./hooks/useRecords";
+import { useStudyProgress } from "./hooks/useStudyProgress";
 import { ScoreInputForm } from "./components/ScoreInputForm";
 import { ProgressDashboard } from "./components/ProgressDashboard";
 import { TestTimer } from "./components/TestTimer";
@@ -13,6 +14,8 @@ export default function App() {
 
   const { records, upsertRecord, deleteRecord, clearAll, exportRecords, importRecords } =
     useRecords();
+
+  const { markDoneFromRecord } = useStudyProgress();
 
   const showToast = (text, isError = false) => {
     setToast({ text, isError });
@@ -69,6 +72,7 @@ export default function App() {
             records={records}
             onSave={(record) => {
               upsertRecord(record);
+              markDoneFromRecord(record);
             }}
             onAlert={showToast}
           />
