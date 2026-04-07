@@ -4,6 +4,7 @@ import {
   Clock, Download, Upload, Trash2,
 } from "lucide-react";
 import { ProgressLineChart } from "./ProgressLineChart";
+import { StudyLog } from "./StudyLog";
 
 /** Four-subject colour palette */
 const SUBJECT_SERIES = [
@@ -95,6 +96,11 @@ export function ProgressDashboard({
 
   return (
     <div className="space-y-6">
+
+      {/* ── Row 0: Study Log ──────────────────────────────────────────────── */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+        <StudyLog />
+      </div>
 
       {/* ── Row 1: Stats + Overall trend ──────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
