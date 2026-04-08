@@ -1,172 +1,155 @@
 /**
- * ProgressLineChart – SVG-based band score trend chart.
+ * ProgressLineChart – ECharts-based band score trend chart.
  *
- * Supports two modes:
+ * Features:
+ * - X-axis: sorted by book + test number (e.g. C4-T1, C4-T2, C5-T1…)
+ * - DataZoom: scroll wheel to zoom in/out
+ * - Tooltip: shows the exact date on hover
  *
- * 1. Single-series (legacy):
- *    <ProgressLineChart data={[7.0, 7.5, 8.0]} color="#4f46e5" />
- *
- * 2. Multi-series:
- *    <ProgressLineChart
- *      series={[
- *        { label: "Listening", color: "#3b82f6", data: [7.0, null, 8.0] },
- *        { label: "Reading",   color: "#10b981", data: [6.5, 7.0, null] },
- *      ]}
- *    />
- *    Null values are silently skipped (the line jumps over them).
+ * Props:
+ *   labels  – string[]  x-axis tick labels, e.g. ["C4-T1", "C4-T2", "C5-T1"]
+ *   series  – array of { label, color, data: number[], dates: string[] }
+ *             data[i] and dates[i] correspond to the i-th label
+ *             data[i] can be null to skip that point
+ *   height  – chart height (default 280)
  */
 
-const PADDING = { top: 16, right: 16, bottom: 16, left: 32 };
-const CHART_W = 520;
-const CHART_H = 200;
-const Y_MIN = 4;
-const Y_MAX = 9;
-const GRID_BANDS = [5, 6, 7, 8, 9];
+import { useEffect, useRef } from "react";
+import * as echarts from "echarts";
 
-/** Map a band value → SVG y-coordinate */
-const toY = (band) =>
-  CHART_H -
-  PADDING.bottom -
-  ((band - Y_MIN) * (CHART_H - PADDING.top - PADDING.bottom)) / (Y_MAX - Y_MIN);
+export function ProgressLineChart({ labels = [], series = [], height = 280 }) {
+  const containerRef = useRef(null);
+  const chartRef = useRef(null);
 
-/** Map a point index → SVG x-coordinate (requires total point count) */
-const toX = (i, total) =>
-  total < 2
-    ? PADDING.left
-    : PADDING.left +
-      (i * (CHART_W - PADDING.left - PADDING.right)) / (total - 1);
+  // Collect all non-null data points across all series to determine y-axis range
+  const allValues = series.flatMap((s) => (s.data || []).filter((v) => v != null));
+  const hasEnoughData = allValues.length >= 2;
+  const yMin = allValues.length > 0 ? Math.floor(Math.min(...allValues)) : 4;
+  const yMax = allValues.length > 0 ? Math.ceil(Math.max(...allValues)) : 9;
 
-/**
- * Build a continuous SVG path string for a series, skipping null values.
- * Produces disconnected segments around null gaps.
- */
-function buildPath(data, total) {
-  let d = "";
-  let lastWasNull = true;
-  data.forEach((val, i) => {
-    if (val === null || val === undefined) {
-      lastWasNull = true;
-      return;
+  // Build chart option (stable reference, no stale closures)
+  const option = {
+    animation: true,
+    grid: {
+      top: 16,
+      right: 24,
+      bottom: 56,
+      left: 48,
+      containLabel: false,
+    },
+    tooltip: {
+      trigger: "item",
+      backgroundColor: "#1e293b",
+      borderColor: "#334155",
+      borderWidth: 1,
+      padding: [8, 12],
+      textStyle: { color: "#f1f5f9", fontSize: 12 },
+      formatter(params) {
+        const idx = params.dataIndex;
+        const s = series.find((s2) => s2.label === params.seriesName);
+        if (!s || s.data == null || s.data[idx] == null) return "";
+        const date = s.dates?.[idx] ?? "";
+        return `<span style="font-size:11px;color:#94a3b8">${params.axisValueLabel}</span><br/>
+                <span style="color:${params.color};font-weight:600">${params.seriesName}</span>
+                : <strong>${s.data[idx]?.toFixed(1)}</strong><br/>
+                ${date ? `<span style="font-size:11px;color:#94a3b8">${date}</span>` : ""}`;
+      },
+    },
+    xAxis: {
+      type: "category",
+      data: labels,
+      axisLine: { lineStyle: { color: "#e2e8f0" } },
+      axisTick: { show: false },
+      axisLabel: { color: "#64748b", fontSize: 11, interval: 0 },
+      splitLine: { show: false },
+    },
+    yAxis: {
+      type: "value",
+      min: yMin,
+      max: yMax,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: "#94a3b8", fontSize: 11 },
+      splitLine: { lineStyle: { color: "#f1f5f9", type: "dashed" } },
+    },
+    dataZoom: [
+      {
+        type: "inside",
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: false,
+      },
+    ],
+    series: series.map((s) => ({
+      name: s.label,
+      type: "line",
+      data: s.data ?? [],
+      symbol: "circle",
+      symbolSize: 6,
+      showSymbol: true,
+      lineStyle: { width: 2.5, color: s.color },
+      itemStyle: {
+        color: s.color,
+        borderWidth: 2,
+        borderColor: "#fff",
+      },
+      emphasis: {
+        scale: true,
+        scaleSize: 10,
+        itemStyle: { shadowBlur: 8, shadowColor: s.color + "66" },
+      },
+      connectNulls: false,
+      smooth: false,
+    })),
+  };
+
+  // Initialize chart
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const instance = echarts.init(containerRef.current, null, { renderer: "canvas" });
+    chartRef.current = instance;
+
+    return () => {
+      instance.dispose();
+      chartRef.current = null;
+    };
+  }, []);
+
+  // Update chart when option or data changes
+  useEffect(() => {
+    if (!chartRef.current) return;
+    chartRef.current.setOption(option, { notMerge: true });
+  }, [option, labels, series]);
+
+  // Resize on container size change
+  useEffect(() => {
+    const observer = new ResizeObserver(() => {
+      chartRef.current?.resize();
+    });
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
     }
-    const x = toX(i, total);
-    const y = toY(val);
-    d += lastWasNull ? `M ${x} ${y}` : ` L ${x} ${y}`;
-    lastWasNull = false;
-  });
-  return d;
-}
+    return () => observer.disconnect();
+  }, []);
 
-function GridLines() {
-  return (
-    <>
-      {GRID_BANDS.map((band) => {
-        const y = toY(band);
-        return (
-          <g key={band}>
-            <line
-              x1={PADDING.left}
-              y1={y}
-              x2={CHART_W - PADDING.right}
-              y2={y}
-              stroke="#e2e8f0"
-              strokeDasharray="4 2"
-            />
-            <text
-              x={PADDING.left - 6}
-              y={y + 4}
-              textAnchor="end"
-              fontSize="10"
-              fill="#94a3b8"
-            >
-              {band}
-            </text>
-          </g>
-        );
-      })}
-    </>
-  );
-}
-
-function SeriesLine({ data, color, total }) {
-  const pathD = buildPath(data, total);
-  if (!pathD) return null;
-  return (
-    <>
-      <path
-        d={pathD}
-        fill="none"
-        stroke={color}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {data.map((val, i) =>
-        val !== null && val !== undefined ? (
-          <circle
-            key={i}
-            cx={toX(i, total)}
-            cy={toY(val)}
-            r="3.5"
-            fill="white"
-            stroke={color}
-            strokeWidth="2"
-          />
-        ) : null
-      )}
-    </>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="flex items-center justify-center h-[200px] bg-slate-50 rounded-lg text-slate-400 text-sm italic">
-      Need at least 2 records to show trends
-    </div>
-  );
-}
-
-export function ProgressLineChart({ data, color = "#4f46e5", height, series }) {
-  // ── Multi-series mode ──────────────────────────────────────────────────────
-  if (series && series.length > 0) {
-    // Use longest series length as the total x-axis points
-    const total = Math.max(...series.map((s) => s.data.length));
-    const hasEnoughData = series.some(
-      (s) => s.data.filter((v) => v !== null && v !== undefined).length >= 2
-    );
-    if (!hasEnoughData) return <EmptyState />;
-
+  if (!hasEnoughData) {
     return (
-      <svg
-        viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-        className="w-full h-auto overflow-visible"
-        aria-label="Band score trend chart"
+      <div
+        className="flex items-center justify-center text-slate-400 text-sm italic bg-slate-50 rounded-lg"
+        style={{ height }}
       >
-        <GridLines />
-        {series.map((s) => (
-          <SeriesLine
-            key={s.label}
-            data={s.data}
-            color={s.color}
-            total={total}
-          />
-        ))}
-      </svg>
+        Need at least 2 records to show trends
+      </div>
     );
   }
 
-  // ── Single-series (legacy) mode ────────────────────────────────────────────
-  if (!data || data.filter((v) => v !== null && v !== undefined).length < 2) {
-    return <EmptyState />;
-  }
-
   return (
-    <svg
-      viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-      className="w-full h-auto overflow-visible"
-      aria-label="Band score trend chart"
-    >
-      <GridLines />
-      <SeriesLine data={data} color={color} total={data.length} />
-    </svg>
+    <div
+      ref={containerRef}
+      style={{ height }}
+      className="w-full"
+    />
   );
 }

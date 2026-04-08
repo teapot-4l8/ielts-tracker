@@ -96,7 +96,7 @@ export function useTodoList() {
   }, [todos, persist]);
 
   const clearDone = useCallback(() => {
-    persist(todos.filter((t) => !t.done));
+    persist(todos.map((t) => t.done ? { ...t, done: false } : t));
   }, [todos, persist]);
 
   // ── Timer API ────────────────────────────────────────────────

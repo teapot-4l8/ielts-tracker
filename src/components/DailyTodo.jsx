@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Trash2, Pencil, Check, X, CheckCheck, Play, Square, Pause } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, X, CheckCheck, Play, Square, Pause, RotateCcw } from "lucide-react";
 import { useTodoList } from "../hooks/useTodoList";
 
 const TAGS = [
@@ -279,8 +279,8 @@ export function DailyTodo() {
           <p className="text-xs text-slate-400 mt-0.5">{todayLabel()} · resets each day</p>
         </div>
         {done.length > 0 && (
-          <button onClick={clearDone} className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-red-500 transition-colors">
-            <Trash2 className="w-3.5 h-3.5" /> Clear done
+          <button onClick={clearDone} className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-indigo-500 transition-colors">
+            <RotateCcw className="w-3.5 h-3.5" /> Reset done
           </button>
         )}
       </div>

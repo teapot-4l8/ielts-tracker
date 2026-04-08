@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import {
-  BarChart2, TrendingUp, Target, ClipboardList,
+  BarChart2, ClipboardList,
   Clock, Download, Upload, Trash2,
 } from "lucide-react";
 import { ProgressLineChart } from "./ProgressLineChart";
@@ -42,32 +42,20 @@ export function ProgressDashboard({
       ? records
       : records.filter((r) => r.book === Number(filterBook));
 
-  // Sort oldest → newest for charts
-  const chronologicalRecords = [...records].sort(
-    (a, b) => a.timestamp - b.timestamp
+  // Sort by book → testNum for chart x-axis
+  const chartRecords = [...records].sort(
+    (a, b) => a.book - b.book || a.testNum - b.testNum
   );
 
-  // ── Stats ──────────────────────────────────────────────────────────────────
-  const recordsWithOverall = records.filter((r) => r.overallBand !== null);
-  const avgOverall =
-    recordsWithOverall.length > 0
-      ? (
-          recordsWithOverall.reduce((acc, r) => acc + r.overallBand, 0) /
-          recordsWithOverall.length
-        ).toFixed(1)
-      : "-";
-  const bestOverall =
-    recordsWithOverall.length > 0
-      ? Math.max(...recordsWithOverall.map((r) => r.overallBand)).toFixed(1)
-      : "-";
+  // X-axis labels e.g. "C4-T1", "C4-T2"
+  const labels = chartRecords.map((r) => `C${r.book}-T${r.testNum}`);
 
   // ── Chart data ─────────────────────────────────────────────────────────────
-  const overallSeries = chronologicalRecords.map((r) => r.overallBand ?? null);
-
   const subjectSeries = SUBJECT_SERIES.map((s) => ({
     label: s.label,
     color: s.color,
-    data: chronologicalRecords.map((r) => r[s.key] ?? null),
+    data: chartRecords.map((r) => r[s.key] ?? null),
+    dates: chartRecords.map((r) => r.date ?? ""),
   }));
 
   // ── Handlers ───────────────────────────────────────────────────────────────
@@ -102,49 +90,15 @@ export function ProgressDashboard({
         <StudyLog />
       </div>
 
-      {/* ── Row 1: Stats + Overall trend ──────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Stats cards */}
-        <div className="lg:col-span-1 space-y-4">
-          <StatCard
-            label="Average Overall"
-            value={avgOverall}
-            colorClass="text-indigo-600"
-            bgClass="bg-indigo-50"
-            icon={<TrendingUp className="w-6 h-6" />}
-          />
-          <StatCard
-            label="Best Performance"
-            value={bestOverall}
-            colorClass="text-emerald-600"
-            bgClass="bg-emerald-50"
-            icon={<Target className="w-6 h-6" />}
-          />
-          <StatCard
-            label="Total Tests"
-            value={records.length}
-            colorClass="text-slate-700"
-            bgClass="bg-slate-50"
-            icon={<ClipboardList className="w-6 h-6" />}
-          />
-        </div>
-
-        {/* Overall progress chart */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-slate-800">
-              Overall Progress Trend
-            </h3>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-indigo-600" />
-              <span className="text-xs text-slate-500 font-medium">Overall Band</span>
-            </div>
-          </div>
-          <ProgressLineChart data={overallSeries} />
-          <p className="text-[11px] text-slate-400 mt-2 text-center">
-            Only records with all 4 subjects are plotted for overall band.
-          </p>
-        </div>
+      {/* ── Row 1: Stats ──────────────────────────────────────────────────── */}
+      <div>
+        <StatCard
+          label="Total Tests"
+          value={records.length}
+          colorClass="text-slate-700"
+          bgClass="bg-slate-50"
+          icon={<ClipboardList className="w-6 h-6" />}
+        />
       </div>
 
       {/* ── Row 2: Four-subject trend ──────────────────────────────────────── */}
@@ -168,7 +122,7 @@ export function ProgressDashboard({
             ))}
           </div>
         </div>
-        <ProgressLineChart series={subjectSeries} />
+        <ProgressLineChart labels={labels} series={subjectSeries} />
         <p className="text-[11px] text-slate-400 mt-2 text-center">
           Lines skip subjects not recorded in a given attempt.
         </p>
