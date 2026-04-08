@@ -64,6 +64,12 @@ export function ProgressDashboard({
     color: s.color,
     data: chartRecords.map((r) => r[s.key] ?? null),
     dates: chartRecords.map((r) => r.date ?? ""),
+    // Raw scores for tooltip (Listening/Reading only)
+    rawData: chartRecords.map((r) => {
+      if (s.key === "lBand") return r.listeningRaw ?? null;
+      if (s.key === "rBand") return r.readingRaw ?? null;
+      return null;
+    }),
   }));
 
   // ── Handlers ───────────────────────────────────────────────────────────────
@@ -277,7 +283,13 @@ export function ProgressDashboard({
                     <td className="p-4 text-center">
                       {record.lBand !== null && record.lBand !== undefined ? (
                         <div className="group relative inline-block">
-                          <span className="font-semibold text-blue-800 cursor-default underline decoration-dotted decoration-blue-300">
+                          <span
+                            className={`font-semibold cursor-default underline decoration-dotted ${
+                              record.listeningSections?.some((v) => v === null)
+                                ? "text-slate-400 decoration-slate-300"
+                                : "text-blue-800 decoration-blue-300"
+                            }`}
+                          >
                             {record.lBand.toFixed(1)}
                           </span>
                           {/* Section tooltip */}
@@ -290,10 +302,12 @@ export function ProgressDashboard({
                                   <span className="font-medium">{v !== null ? `${v}/10` : "—"}</span>
                                 </span>
                               ))}
-                              <span className="border-t border-slate-600 w-full mt-1 pt-1 flex justify-between">
-                                <span className="text-slate-400">Total</span>
-                                <span className="font-bold">{record.listeningRaw}/40</span>
-                              </span>
+                              {!record.listeningSections?.some((v) => v === null) && record.listeningRaw && (
+                                <span className="border-t border-slate-600 w-full mt-1 pt-1 flex justify-between">
+                                  <span className="text-slate-400">Total</span>
+                                  <span className="font-bold">{record.listeningRaw}/40</span>
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -306,7 +320,13 @@ export function ProgressDashboard({
                     <td className="p-4 text-center">
                       {record.rBand !== null && record.rBand !== undefined ? (
                         <div className="group relative inline-block">
-                          <span className="font-semibold text-emerald-800 cursor-default underline decoration-dotted decoration-emerald-300">
+                          <span
+                            className={`font-semibold cursor-default underline decoration-dotted ${
+                              record.readingPassages?.some((v) => v === null)
+                                ? "text-slate-400 decoration-slate-300"
+                                : "text-emerald-800 decoration-emerald-300"
+                            }`}
+                          >
                             {record.rBand.toFixed(1)}
                           </span>
                           {/* Passage tooltip */}
@@ -319,10 +339,12 @@ export function ProgressDashboard({
                                   <span className="font-medium">{v !== null ? `${v}/${[13,13,14][i]}` : "—"}</span>
                                 </span>
                               ))}
-                              <span className="border-t border-slate-600 w-full mt-1 pt-1 flex justify-between">
-                                <span className="text-slate-400">Total</span>
-                                <span className="font-bold">{record.readingRaw}/40</span>
-                              </span>
+                              {!record.readingPassages?.some((v) => v === null) && record.readingRaw && (
+                                <span className="border-t border-slate-600 w-full mt-1 pt-1 flex justify-between">
+                                  <span className="text-slate-400">Total</span>
+                                  <span className="font-bold">{record.readingRaw}/40</span>
+                                </span>
+                              )}
                             </div>
                           )}
                           {record.readingTime && (

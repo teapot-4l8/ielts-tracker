@@ -48,11 +48,25 @@ export function ProgressLineChart({ labels = [], series = [], height = 280 }) {
         const idx = params.dataIndex;
         const s = series.find((s2) => s2.label === params.seriesName);
         if (!s || s.data == null || s.data[idx] == null) return "";
+
+        const label = labels[idx] ?? "";
         const date = s.dates?.[idx] ?? "";
-        return `<span style="font-size:11px;color:#94a3b8">${params.axisValueLabel}</span><br/>
-                <span style="color:${params.color};font-weight:600">${params.seriesName}</span>
-                : <strong>${s.data[idx]?.toFixed(1)}</strong><br/>
-                ${date ? `<span style="font-size:11px;color:#94a3b8">${date}</span>` : ""}`;
+        const raw = s.rawData?.[idx];
+
+        let tooltip = `<span style="font-size:11px;color:#94a3b8">${label}</span><br/>`;
+        tooltip += `<span style="color:${params.color};font-weight:600">${params.seriesName}</span> `;
+        tooltip += `: <strong>${s.data[idx]?.toFixed(1)}</strong>`;
+
+        // Show raw correct count for Listening and Reading
+        if (raw != null && (s.label === "Listening" || s.label === "Reading")) {
+          tooltip += ` <span style="font-size:11px;color:#64748b">(${raw}/40)</span>`;
+        }
+
+        if (date) {
+          tooltip += `<br/><span style="font-size:11px;color:#94a3b8">${date}</span>`;
+        }
+
+        return tooltip;
       },
     },
     xAxis: {
