@@ -86,7 +86,7 @@ export function ProgressLineChart({ labels = [], series = [], height = 280 }) {
       type: "line",
       data: s.data ?? [],
       symbol: "circle",
-      symbolSize: 6,
+      symbolSize: 10,
       showSymbol: true,
       lineStyle: { width: 2.5, color: s.color },
       itemStyle: {
@@ -96,7 +96,7 @@ export function ProgressLineChart({ labels = [], series = [], height = 280 }) {
       },
       emphasis: {
         scale: true,
-        scaleSize: 10,
+        scaleSize: 16,
         itemStyle: { shadowBlur: 8, shadowColor: s.color + "66" },
       },
       connectNulls: false,
