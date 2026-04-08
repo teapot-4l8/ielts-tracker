@@ -83,8 +83,6 @@ export default function App() {
             records={records}
             onDeleteRecord={deleteRecord}
             onClearAll={clearAll}
-            onExport={exportRecords}
-            onImport={importRecords}
             onAlert={showToast}
           />
         )}

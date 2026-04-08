@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import {
   BarChart2, ClipboardList,
-  Clock, Download, Upload, Trash2,
+  Clock, Trash2, ArrowUpDown, ArrowUp, ArrowDown,
 } from "lucide-react";
 import { ProgressLineChart } from "./ProgressLineChart";
 import { StudyLog } from "./StudyLog";
@@ -21,26 +21,34 @@ const SUBJECT_SERIES = [
  *   records          – array of saved test records
  *   onDeleteRecord   – (id) => void
  *   onClearAll       – () => void
- *   onExport         – () => void
- *   onImport         – (file) => Promise<number>
  *   onAlert          – (msg, isError) => void
  */
 export function ProgressDashboard({
   records,
   onDeleteRecord,
   onClearAll,
-  onExport,
-  onImport,
   onAlert,
 }) {
   const [filterBook, setFilterBook] = useState("All");
   const [showConfirmClear, setShowConfirmClear] = useState(false);
-  const importRef = useRef(null);
+  const [sortMode, setSortMode] = useState("time"); // "time" | "book"
+  const [sortDir, setSortDir] = useState("desc");    // "asc"  | "desc"
 
   const filteredRecords =
     filterBook === "All"
       ? records
       : records.filter((r) => r.book === Number(filterBook));
+
+  // Sort records for the table
+  const tableRecords = [...filteredRecords].sort((a, b) => {
+    let cmp = 0;
+    if (sortMode === "time") {
+      cmp = a.timestamp - b.timestamp;
+    } else {
+      cmp = a.book - b.book || a.testNum - b.testNum;
+    }
+    return sortDir === "asc" ? cmp : -cmp;
+  });
 
   // Sort by book → testNum for chart x-axis
   const chartRecords = [...records].sort(
@@ -59,23 +67,6 @@ export function ProgressDashboard({
   }));
 
   // ── Handlers ───────────────────────────────────────────────────────────────
-  const handleImportFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const added = await onImport(file);
-      onAlert(
-        added > 0
-          ? `Imported ${added} new record(s) successfully.`
-          : "No new records found (all already exist)."
-      );
-    } catch {
-      onAlert("Import failed. Please check the file format.", true);
-    } finally {
-      e.target.value = "";
-    }
-  };
-
   const handleClearAll = () => {
     onClearAll();
     setShowConfirmClear(false);
@@ -152,33 +143,52 @@ export function ProgressDashboard({
               </select>
             </div>
 
-            {/* Export */}
-            <button
-              onClick={onExport}
-              disabled={records.length === 0}
-              title="Export records as JSON"
-              className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
-            >
-              <Download className="w-4 h-4" />
-              Export
-            </button>
+            {/* Sort mode toggle */}
+            <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-lg p-1">
+              <button
+                onClick={() => setSortMode("time")}
+                title="Sort by date"
+                className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-md transition-colors ${
+                  sortMode === "time"
+                    ? "bg-white text-indigo-700 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                Time
+              </button>
+              <button
+                onClick={() => setSortMode("book")}
+                title="Sort by book & test number"
+                className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-md transition-colors ${
+                  sortMode === "book"
+                    ? "bg-white text-indigo-700 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <BarChart2 className="w-3.5 h-3.5" />
+                Book
+              </button>
+            </div>
 
-            {/* Import */}
+            {/* Direction toggle */}
             <button
-              onClick={() => importRef.current?.click()}
-              title="Import records from JSON"
-              className="flex items-center gap-1.5 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-lg transition-colors"
+              onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+              title={sortDir === "asc" ? "Ascending (oldest/earliest first)" : "Descending (newest/latest first)"}
+              className="flex items-center gap-1.5 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors"
             >
-              <Upload className="w-4 h-4" />
-              Import
+              {sortDir === "asc" ? (
+                <>
+                  <ArrowUp className="w-4 h-4" />
+                  <span className="text-xs">Asc</span>
+                </>
+              ) : (
+                <>
+                  <ArrowDown className="w-4 h-4" />
+                  <span className="text-xs">Desc</span>
+                </>
+              )}
             </button>
-            <input
-              ref={importRef}
-              type="file"
-              accept="application/json"
-              className="hidden"
-              onChange={handleImportFile}
-            />
 
             {/* Clear all */}
             {records.length > 0 && !showConfirmClear && (
@@ -217,7 +227,7 @@ export function ProgressDashboard({
             <BarChart2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
             <h3 className="text-lg font-medium text-slate-600">No records yet</h3>
             <p className="text-sm text-slate-400 mt-1">
-              Record a test or import an existing JSON file to get started.
+              Record a test to get started.
             </p>
           </div>
         ) : (
@@ -236,7 +246,7 @@ export function ProgressDashboard({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredRecords.map((record) => (
+                {tableRecords.map((record) => (
                   <tr key={record.id} className="hover:bg-slate-50 transition-colors">
                     <td className="p-4 text-sm text-slate-500">{record.date}</td>
                     <td className="p-4 font-medium text-slate-800">
