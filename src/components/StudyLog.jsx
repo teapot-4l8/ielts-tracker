@@ -54,16 +54,18 @@ function Ring({ ratio, color = "#6366f1", size = 30, stroke = 3 }) {
 
 // ── Step badge (pill checkbox) ───────────────────────────────────────────────
 
-function StepBadge({ checked, label, bgColor, onClick }) {
+function StepBadge({ checked, label, bgColor, onClick, onShiftClick }) {
   const isCount = typeof checked === "number";
   return (
     <button
       onClick={onClick}
+      onContextMenu={(e) => { e.preventDefault(); onShiftClick?.(); }}
       className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all duration-150 select-none
         ${checked
           ? `${bgColor} text-white border-transparent shadow-sm scale-105`
           : "bg-white text-slate-400 border-slate-200 hover:border-slate-400 hover:text-slate-600"
         }`}
+      title={isCount ? "Click to add, right-click to reduce" : undefined}
     >
       {checked && !isCount && <Check className="w-3 h-3 flex-shrink-0" strokeWidth={3} />}
       {isCount ? `${label} ${checked}×` : label}
@@ -73,7 +75,7 @@ function StepBadge({ checked, label, bgColor, onClick }) {
 
 // ── Single section / passage row ─────────────────────────────────────────────
 
-function ItemRow({ rowLabel, steps, item, onToggle }) {
+function ItemRow({ rowLabel, steps, item, onToggle, onDecrement }) {
   const allDone = steps.every((s) => item[s.key]);
   return (
     <div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${allDone ? "bg-slate-50" : "bg-white"}`}>
@@ -89,6 +91,7 @@ function ItemRow({ rowLabel, steps, item, onToggle }) {
             label={s.label}
             bgColor={s.color}
             onClick={() => onToggle(s.key)}
+            onShiftClick={s.key === "review" ? () => onDecrement(s.key) : undefined}
           />
         ))}
       </div>
@@ -98,7 +101,7 @@ function ItemRow({ rowLabel, steps, item, onToggle }) {
 
 // ── Subject block (Listening | Reading) ───────────────────────────────────────
 
-function SubjectBlock({ title, Icon, items, steps, accent, rowPrefix, onToggle }) {
+function SubjectBlock({ title, Icon, items, steps, accent, rowPrefix, onToggle, onDecrement }) {
   const checked = countChecked(items, steps);
   const total   = totalSteps(items, steps);
   const allDone = checked === total;
@@ -126,6 +129,7 @@ function SubjectBlock({ title, Icon, items, steps, accent, rowPrefix, onToggle }
             steps={steps}
             item={item}
             onToggle={(step) => onToggle(step, i)}
+            onDecrement={(step) => onDecrement(step, i)}
           />
         ))}
       </div>
@@ -138,7 +142,7 @@ function SubjectBlock({ title, Icon, items, steps, accent, rowPrefix, onToggle }
 const AVAILABLE_BOOKS = Array.from({ length: 19 }, (_, i) => i + 4); // 4–22
 
 export function StudyLog() {
-  const { progress, toggleStep, getEntry, allEntries, deleteEntry, initEntry, setProgress } = useStudyProgress();
+  const { progress, toggleStep, decrementReview, getEntry, allEntries, deleteEntry, initEntry, setProgress } = useStudyProgress();
 
   // Re-load when another hook instance (e.g. App.jsx) writes to localStorage
   useEffect(() => {
@@ -167,6 +171,11 @@ export function StudyLog() {
   const handleDelete = () => {
     deleteEntry(selectedBook, selectedTest);
     setConfirmDelete(false);
+  };
+
+  const handleDecrement = (step, idx) => {
+    const subject = step === "vocab" || step === "review" ? "reading" : "listening";
+    decrementReview(selectedBook, selectedTest, subject, idx);
   };
 
   const hasEntry = entry !== null;
@@ -279,6 +288,7 @@ export function StudyLog() {
             rowPrefix="S"
             accent={{ iconBg: "bg-blue-100", iconColor: "text-blue-600", text: "text-blue-700", ring: "#3b82f6" }}
             onToggle={(step, idx) => toggleStep(selectedBook, selectedTest, "listening", idx, step)}
+            onDecrement={handleDecrement}
           />
           <SubjectBlock
             title="Reading"
@@ -288,6 +298,7 @@ export function StudyLog() {
             rowPrefix="P"
             accent={{ iconBg: "bg-emerald-100", iconColor: "text-emerald-600", text: "text-emerald-700", ring: "#10b981" }}
             onToggle={(step, idx) => toggleStep(selectedBook, selectedTest, "reading", idx, step)}
+            onDecrement={handleDecrement}
           />
         </div>
       )}

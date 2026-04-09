@@ -156,6 +156,32 @@ export function useStudyProgress() {
   );
 
   /**
+   * Decrement a review counter (does not go below 0).
+   */
+  const decrementReview = useCallback(
+    (book, testNum, subject, index) => {
+      setProgress((prev) => {
+        const key = `${book}-${testNum}`;
+        const entry = prev[key];
+        if (!entry) return prev;
+        const current = entry[subject][index]?.review ?? 0;
+        if (current <= 0) return prev;
+        const list = entry[subject].map((item, i) =>
+          i === index ? { ...item, review: current - 1 } : item
+        );
+        const next = {
+          ...prev,
+          [key]: { ...entry, [subject]: list },
+        };
+        save(next);
+        EventBus.emit("study-progress-changed", next);
+        return next;
+      });
+    },
+    []
+  );
+
+  /**
    * Get the progress object for a specific book/test.
    * Returns default (all false) if not yet created.
    */
@@ -224,5 +250,5 @@ export function useStudyProgress() {
     []
   );
 
-  return { progress, toggleStep, getEntry, allEntries, deleteEntry, initEntry, markDoneFromRecord, setProgress };
+  return { progress, toggleStep, decrementReview, getEntry, allEntries, deleteEntry, initEntry, markDoneFromRecord, setProgress };
 }
