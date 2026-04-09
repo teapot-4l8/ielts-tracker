@@ -55,6 +55,7 @@ function Ring({ ratio, color = "#6366f1", size = 30, stroke = 3 }) {
 // ── Step badge (pill checkbox) ───────────────────────────────────────────────
 
 function StepBadge({ checked, label, bgColor, onClick }) {
+  const isCount = typeof checked === "number";
   return (
     <button
       onClick={onClick}
@@ -64,8 +65,8 @@ function StepBadge({ checked, label, bgColor, onClick }) {
           : "bg-white text-slate-400 border-slate-200 hover:border-slate-400 hover:text-slate-600"
         }`}
     >
-      {checked && <Check className="w-3 h-3 flex-shrink-0" strokeWidth={3} />}
-      {label}
+      {checked && !isCount && <Check className="w-3 h-3 flex-shrink-0" strokeWidth={3} />}
+      {isCount ? `${label} ${checked}×` : label}
     </button>
   );
 }
@@ -227,13 +228,15 @@ export function StudyLog() {
               <Trash2 className="w-4 h-4" />
             </button>
           )}
-          {/* Add / Go */}
-          <button
-            onClick={handleAdd}
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors"
-          >
-            <Plus className="w-4 h-4" /> {hasEntry ? "Reset" : "Add"}
-          </button>
+          {/* Add */}
+          {!hasEntry && (
+            <button
+              onClick={handleAdd}
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Add
+            </button>
+          )}
         </div>
       </div>
 

@@ -14,9 +14,9 @@ import { EventBus } from "../utils/eventBus";
  *       { done: false, intensive: false, shadowing: false },  // S4
  *     ],
  *     reading: [
- *       { done: false, vocab: false, review: false },         // P1
- *       { done: false, vocab: false, review: false },         // P2
- *       { done: false, vocab: false, review: false },         // P3
+ *       { done: false, vocab: false, review: 0 },              // P1  (review is a click counter)
+ *       { done: false, vocab: false, review: 0 },              // P2
+ *       { done: false, vocab: false, review: 0 },              // P3
  *     ],
  *   },
  *   ...
@@ -35,7 +35,7 @@ function makeListeningSections() {
 }
 
 function makeReadingPassages() {
-  return Array.from({ length: 3 }, () => ({ done: false, vocab: false, review: false }));
+  return Array.from({ length: 3 }, () => ({ done: false, vocab: false, review: 0 }));
 }
 
 function load() {
@@ -135,9 +135,13 @@ export function useStudyProgress() {
         const key = `${book}-${testNum}`;
         const entry = withEntry[key];
 
-        const list = entry[subject].map((item, i) =>
-          i === index ? { ...item, [step]: !item[step] } : item
-        );
+        const list = entry[subject].map((item, i) => {
+          if (i !== index) return item;
+          if (step === "review") {
+            return { ...item, review: (item.review ?? 0) + 1 };
+          }
+          return { ...item, [step]: !item[step] };
+        });
 
         const next = {
           ...withEntry,
