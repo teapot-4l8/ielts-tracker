@@ -3,23 +3,45 @@ import { CheckCircle, BarChart2, AlertCircle, Timer, ListTodo } from "lucide-rea
 
 import { useRecords } from "./hooks/useRecords";
 import { useStudyProgress } from "./hooks/useStudyProgress";
+import { useTodoList } from "./hooks/useTodoList";
 import { ScoreInputForm } from "./components/ScoreInputForm";
 import { ProgressDashboard } from "./components/ProgressDashboard";
 import { TestTimer } from "./components/TestTimer";
 import { DailyTodo } from "./components/DailyTodo";
+import { exportAll, importAll } from "./utils/dataSync";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("record");
   const [toast, setToast] = useState(null); // { text, isError }
 
-  const { records, upsertRecord, deleteRecord, clearAll, exportRecords, importRecords } =
+  const { records, upsertRecord, deleteRecord } =
     useRecords();
 
-  const { markDoneFromRecord } = useStudyProgress();
+  const { markDoneFromRecord, reload: reloadStudyProgress } = useStudyProgress();
+  const { reload: reloadTodos } = useTodoList();
 
   const showToast = (text, isError = false) => {
     setToast({ text, isError });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleExport = () => {
+    exportAll();
+    showToast("Data exported successfully.");
+  };
+
+  const handleImport = async (file) => {
+    try {
+      const { recordsAdded, progressMerged, todosMerged } = await importAll(file);
+      // Reload both hooks so UI reflects imported data immediately
+      reloadStudyProgress();
+      reloadTodos();
+      showToast(
+        `Imported: ${recordsAdded} record(s), ${progressMerged} study log(s), ${todosMerged} task(s).`
+      );
+    } catch (err) {
+      showToast(`Import failed: ${err.message}`, true);
+    }
   };
 
   return (
@@ -82,8 +104,9 @@ export default function App() {
           <ProgressDashboard
             records={records}
             onDeleteRecord={deleteRecord}
-            onClearAll={clearAll}
             onAlert={showToast}
+            onExport={handleExport}
+            onImport={handleImport}
           />
         )}
 

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import {
-  BookOpen, Headphones, Plus, Trash2, Check,
+  BookOpen, Headphones, Plus, Trash2, Check, Download, Upload,
 } from "lucide-react";
 import { useStudyProgress } from "../hooks/useStudyProgress";
 import { EventBus } from "../utils/eventBus";
@@ -141,7 +141,7 @@ function SubjectBlock({ title, Icon, items, steps, accent, rowPrefix, onToggle, 
 
 const AVAILABLE_BOOKS = Array.from({ length: 19 }, (_, i) => i + 4); // 4–22
 
-export function StudyLog() {
+export function StudyLog({ onExport, onImport }) {
   const { progress, toggleStep, decrementReview, getEntry, allEntries, deleteEntry, initEntry, setProgress } = useStudyProgress();
 
   // Re-load when another hook instance (e.g. App.jsx) writes to localStorage
@@ -227,6 +227,37 @@ export function StudyLog() {
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
+          {/* Export */}
+          <button
+            onClick={onExport}
+            title="Export all data"
+            className="flex items-center gap-1.5 text-sm font-medium text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+
+          {/* Import */}
+          <label
+            title="Import from backup"
+            className="flex items-center gap-1.5 text-sm font-medium text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+          >
+            <Upload className="w-4 h-4" />
+            Import
+            <input
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  onImport(file);
+                  e.target.value = "";
+                }
+              }}
+            />
+          </label>
+
           {/* Delete */}
           {hasEntry && (
             <button

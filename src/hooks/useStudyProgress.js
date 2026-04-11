@@ -250,5 +250,12 @@ export function useStudyProgress() {
     []
   );
 
-  return { progress, toggleStep, decrementReview, getEntry, allEntries, deleteEntry, initEntry, markDoneFromRecord, setProgress };
+  /** Force-reload state from localStorage and notify listeners (used after external import). */
+  const reload = useCallback(() => {
+    const data = load();
+    setProgress(data);
+    EventBus.emit("study-progress-changed", data);
+  }, []);
+
+  return { progress, toggleStep, decrementReview, getEntry, allEntries, deleteEntry, initEntry, markDoneFromRecord, setProgress, reload };
 }

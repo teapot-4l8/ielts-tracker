@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { EventBus } from "../utils/eventBus";
 
 const STORAGE_KEY = "ielts_daily_todos";
 
@@ -141,9 +142,17 @@ export function useTodoList() {
       : t));
   }, [todos, persist]);
 
+  /** Force-reload state from localStorage and notify listeners (used after external import). */
+  const reload = useCallback(() => {
+    const data = loadData();
+    setTodos(data?.todos ?? []);
+    EventBus.emit("todos-changed", data ?? { lastDate: todayStr(), todos: [] });
+  }, []);
+
   return {
     todos,
     addTodo, toggleTodo, editTodo, deleteTodo, clearDone,
     startTimer, pauseTimer, resumeTimer, stopTimer, cancelTimer,
+    reload,
   };
 }
