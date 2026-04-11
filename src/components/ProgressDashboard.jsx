@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  BarChart2, ClipboardList,
+  BarChart2,
   Clock, Trash2, ArrowUpDown, ArrowUp, ArrowDown,
 } from "lucide-react";
 import { ProgressLineChart } from "./ProgressLineChart";
@@ -85,17 +85,6 @@ export function ProgressDashboard({
       {/* ── Row 0: Study Log ──────────────────────────────────────────────── */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
         <StudyLog />
-      </div>
-
-      {/* ── Row 1: Stats ──────────────────────────────────────────────────── */}
-      <div>
-        <StatCard
-          label="Total Tests"
-          value={records.length}
-          colorClass="text-slate-700"
-          bgClass="bg-slate-50"
-          icon={<ClipboardList className="w-6 h-6" />}
-        />
       </div>
 
       {/* ── Row 2: Four-subject trend ──────────────────────────────────────── */}
@@ -412,15 +401,4 @@ export function ProgressDashboard({
   );
 }
 
-/** Small reusable stat card. */
-function StatCard({ label, value, colorClass, bgClass, icon }) {
-  return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-      <div>
-        <p className="text-sm font-semibold text-slate-400 uppercase">{label}</p>
-        <p className={`text-3xl font-bold ${colorClass}`}>{value}</p>
-      </div>
-      <div className={`${bgClass} p-3 rounded-full ${colorClass}`}>{icon}</div>
-    </div>
-  );
-}
+
