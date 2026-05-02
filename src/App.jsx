@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckCircle, BarChart2, AlertCircle, Timer, ListTodo } from "lucide-react";
 
 import { useRecords } from "./hooks/useRecords";
@@ -8,11 +8,36 @@ import { ScoreInputForm } from "./components/ScoreInputForm";
 import { ProgressDashboard } from "./components/ProgressDashboard";
 import { TestTimer } from "./components/TestTimer";
 import { DailyTodo } from "./components/DailyTodo";
-import { exportAll, importAll } from "./utils/dataSync";
+import { exportAll, importAll, fetchAll } from "./utils/dataSync";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("record");
   const [toast, setToast] = useState(null); // { text, isError }
+
+  // ── Bootstrap: load from the on-disk file first ─────────────────
+  useEffect(() => {
+    const KEYS = {
+      RECORDS:       "ielts_tracker_records",
+      STUDY_PROGRESS:"ielts_study_progress",
+      DAILY_TODOS:   "ielts_daily_todos",
+    }
+    fetchAll().then((data) => {
+      if (!data) return
+      // Only reload if file actually has data we don't have yet
+      const localRecords = JSON.parse(localStorage.getItem(KEYS.RECORDS) || "[]")
+      const localProgress = JSON.parse(localStorage.getItem(KEYS.STUDY_PROGRESS) || "{}")
+      const localTodos = JSON.parse(localStorage.getItem(KEYS.DAILY_TODOS) || "null")
+      const fileHasRecords = Array.isArray(data.records) && data.records.length > localRecords.length
+      const fileHasProgress = data.studyProgress && Object.keys(data.studyProgress).length > Object.keys(localProgress).length
+      const fileHasTodos = data.dailyTodos?.todos?.length > (localTodos?.todos?.length ?? 0)
+      if (fileHasRecords || fileHasProgress || fileHasTodos) {
+        if (fileHasRecords) localStorage.setItem(KEYS.RECORDS, JSON.stringify(data.records))
+        if (fileHasProgress) localStorage.setItem(KEYS.STUDY_PROGRESS, JSON.stringify(data.studyProgress))
+        if (fileHasTodos) localStorage.setItem(KEYS.DAILY_TODOS, JSON.stringify(data.dailyTodos))
+        window.location.reload()
+      }
+    }).catch(() => {}) // ignore errors outside dev server
+  }, [])
 
   const { records, upsertRecord, deleteRecord } =
     useRecords();

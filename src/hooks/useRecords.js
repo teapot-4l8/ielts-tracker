@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import { fetchAll } from "../utils/dataSync";
+import { triggerAutoSave } from "../utils/autoSave";
 
 const STORAGE_KEY = "ielts_tracker_records";
 
@@ -25,6 +27,8 @@ const STORAGE_KEY = "ielts_tracker_records";
  */
 export function useRecords() {
   const [records, setRecords] = useState(() => {
+    // Synchronous init: try file first (already loaded via useInitialSync in App),
+    // fall back to localStorage.
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       return stored ? JSON.parse(stored) : [];
@@ -40,6 +44,7 @@ export function useRecords() {
     } catch (e) {
       console.warn("Failed to persist records to localStorage:", e);
     }
+    triggerAutoSave();
   }, [records]);
 
   /**

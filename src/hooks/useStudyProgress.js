@@ -1,4 +1,5 @@
 import { EventBus } from "../utils/eventBus";
+import { triggerAutoSave } from "../utils/autoSave";
 
 /**
  * Manages per-section / per-passage study progress, stored separately from
@@ -57,6 +58,7 @@ export function useStudyProgress() {
   const persist = useCallback((next) => {
     setProgress(next);
     save(next);
+    triggerAutoSave();
   }, []);
 
   /**

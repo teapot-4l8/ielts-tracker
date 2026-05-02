@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { EventBus } from "../utils/eventBus";
+import { triggerAutoSave } from "../utils/autoSave";
 
 const STORAGE_KEY = "ielts_daily_todos";
 
@@ -64,6 +65,7 @@ export function useTodoList() {
   const persist = useCallback((list) => {
     setTodos(list);
     saveData({ lastDate: todayStr(), todos: list });
+    triggerAutoSave();
   }, []);
 
   // ── CRUD ─────────────────────────────────────────────────────

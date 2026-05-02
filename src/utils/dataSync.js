@@ -13,6 +13,40 @@ const KEYS = {
   DAILY_TODOS:   "ielts_daily_todos",
 };
 
+/** Fetch all three datasets from public/data/records.json (served by Vite dev-server plugin). */
+export async function fetchAll() {
+  try {
+    const res = await fetch('/data/records.json')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return await res.json()
+  } catch {
+    return null // no file yet — fall back to localStorage defaults
+  }
+}
+
+/**
+ * Persist all three datasets to public/data/records.json via the Vite dev-server API.
+ * Call this whenever any dataset changes so the file stays in sync.
+ */
+export async function saveAll() {
+  const payload = {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    records:       JSON.parse(localStorage.getItem(KEYS.RECORDS)       || "null"),
+    studyProgress: JSON.parse(localStorage.getItem(KEYS.STUDY_PROGRESS)|| "null"),
+    dailyTodos:    JSON.parse(localStorage.getItem(KEYS.DAILY_TODOS)  || "null"),
+  }
+  try {
+    await fetch('/data/records.json', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+  } catch (e) {
+    console.warn('Failed to auto-save to file:', e)
+  }
+}
+
 /** Export all three datasets as a single JSON file download. */
 export function exportAll() {
   const payload = {

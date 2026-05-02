@@ -34,7 +34,8 @@ An intelligent IELTS preparation companion that helps you track progress across 
 | **Charts** | ECharts 5 (native, no wrapper) |
 | **Icons** | Lucide React |
 | **AI** | Google Gemini API (`gemini-2.5-flash-preview-09-2025`) |
-| **Storage** | localStorage (all data stays in your browser) |
+| **Storage** | localStorage + `public/data/records.json` auto-sync |
+| **Auto-Save** | Every change is written to `public/data/records.json` within ~500 ms; page reload restores from file |
 
 ---
 
@@ -100,6 +101,12 @@ src/
     scoring.js              # Raw score → band score conversion
     geminiApi.js            # Gemini API helpers (brainstorm + grading)
     eventBus.js             # Lightweight event emitter for cross-component sync
+    dataSync.js             # Export/import + fetchAll/saveAll (file sync)
+    autoSave.js            # Debounced auto-save trigger
+
+public/
+  data/
+    records.json            # Auto-saved data file (committed to git)
 ```
 
 ---
@@ -152,6 +159,7 @@ src/
 
 ## 🔮 Roadmap
 
+- [x] Auto-save to local file (commits to git automatically)
 - [ ] Speaking mock test timer
 - [ ] Export progress reports as PDF
 - [ ] Cloud sync (optional)

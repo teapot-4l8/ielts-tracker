@@ -34,7 +34,8 @@
 | **图表** | ECharts 5（原生使用，无封装库） |
 | **图标** | Lucide React |
 | **AI** | Google Gemini API (`gemini-2.5-flash-preview-09-2025`) |
-| **存储** | localStorage（所有数据保存在浏览器本地） |
+| **存储** | localStorage + `public/data/records.json` 自动同步 |
+| **自动备份** | 每次数据变化后约 500ms 自动写入 `public/data/records.json`；刷新页面时从文件恢复 |
 
 ---
 
@@ -100,6 +101,12 @@ src/
     scoring.js              # 原始分数 → 标准分转换
     geminiApi.js            # Gemini API 调用（头脑风暴 + 评分）
     eventBus.js             # 轻量级事件总线，用于跨组件同步
+    dataSync.js             # 导出/导入 + fetchAll/saveAll（文件同步）
+    autoSave.js             # 防抖自动保存触发器
+
+public/
+  data/
+    records.json            # 自动保存的数据文件（纳入 Git 版本管理）
 ```
 
 ---
@@ -152,6 +159,7 @@ src/
 
 ## 🔮 计划
 
+- [x] 自动保存到本地文件（随项目提交 Git）
 - [ ] 口语模拟计时器
 - [ ] 导出进度报告为 PDF
 - [ ] 云端同步（可选）
