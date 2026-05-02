@@ -14,6 +14,10 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("record");
   const [toast, setToast] = useState(null); // { text, isError }
 
+  // Persist book/test selection across tab switches
+  const [selectedBook, setSelectedBook] = useState(18);
+  const [selectedTestNum, setSelectedTestNum] = useState(1);
+
   // ── Bootstrap: load from the on-disk file first ─────────────────
   useEffect(() => {
     const KEYS = {
@@ -117,6 +121,10 @@ export default function App() {
         {activeTab === "record" && (
           <ScoreInputForm
             records={records}
+            selectedBook={selectedBook}
+            selectedTestNum={selectedTestNum}
+            onBookChange={setSelectedBook}
+            onTestNumChange={setSelectedTestNum}
             onSave={(record) => {
               upsertRecord(record);
               markDoneFromRecord(record);
@@ -132,6 +140,10 @@ export default function App() {
             onAlert={showToast}
             onExport={handleExport}
             onImport={handleImport}
+            selectedBook={selectedBook}
+            selectedTestNum={selectedTestNum}
+            onBookChange={setSelectedBook}
+            onTestNumChange={setSelectedTestNum}
           />
         )}
 

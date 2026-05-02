@@ -29,6 +29,10 @@ export function ProgressDashboard({
   onAlert,
   onExport,
   onImport,
+  selectedBook,
+  selectedTestNum,
+  onBookChange,
+  onTestNumChange,
 }) {
   const [filterBook, setFilterBook] = useState("All");
   const [sortMode, setSortMode] = useState("time"); // "time" | "book"
@@ -77,7 +81,14 @@ export function ProgressDashboard({
 
       {/* ── Row 0: Study Log ──────────────────────────────────────────────── */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-        <StudyLog onExport={onExport} onImport={onImport} />
+        <StudyLog
+          onExport={onExport}
+          onImport={onImport}
+          selectedBook={selectedBook}
+          selectedTestNum={selectedTestNum}
+          onBookChange={onBookChange}
+          onTestNumChange={onTestNumChange}
+        />
       </div>
 
       {/* ── Row 2: Four-subject trend ──────────────────────────────────────── */}

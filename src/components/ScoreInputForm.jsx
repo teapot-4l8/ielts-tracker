@@ -36,9 +36,17 @@ function toField(v) {
  *   onSave(record)      – called with a complete record object
  *   onAlert(msg, isErr) – toast handler
  */
-export function ScoreInputForm({ records = [], onSave, onAlert }) {
-  const [book, setBook] = useState(18);
-  const [testNum, setTestNum] = useState(1);
+export function ScoreInputForm({
+  records = [],
+  selectedBook,
+  selectedTestNum,
+  onBookChange,
+  onTestNumChange,
+  onSave,
+  onAlert,
+}) {
+  const [book, setBook] = [selectedBook, onBookChange];
+  const [testNum, setTestNum] = [selectedTestNum, onTestNumChange];
 
   // Listening: 4 section fields + expand state
   const [lSections, setLSections] = useState(["", "", "", ""]);

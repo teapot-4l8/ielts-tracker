@@ -141,7 +141,7 @@ function SubjectBlock({ title, Icon, items, steps, accent, rowPrefix, onToggle, 
 
 const AVAILABLE_BOOKS = Array.from({ length: 19 }, (_, i) => i + 4); // 4–22
 
-export function StudyLog({ onExport, onImport }) {
+export function StudyLog({ onExport, onImport, selectedBook, selectedTestNum, onBookChange, onTestNumChange }) {
   const { progress, toggleStep, decrementReview, getEntry, allEntries, deleteEntry, initEntry, setProgress } = useStudyProgress();
 
   // Re-load when another hook instance (e.g. App.jsx) writes to localStorage
@@ -151,9 +151,6 @@ export function StudyLog({ onExport, onImport }) {
     return off;
   }, []);
 
-  const [selectedBook, setSelectedBook] = useState(4);
-  const [selectedTest, setSelectedTest] = useState(1);
-
   // Collect all tests that have an entry for the selected book
   const testsForBook = useMemo(() => {
     return allEntries()
@@ -162,20 +159,20 @@ export function StudyLog({ onExport, onImport }) {
       .sort((a, b) => a - b);
   }, [selectedBook, progress]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const entry = getEntry(selectedBook, selectedTest);
+  const entry = getEntry(selectedBook, selectedTestNum);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const handleAdd = () => initEntry(selectedBook, selectedTest);
+  const handleAdd = () => initEntry(selectedBook, selectedTestNum);
 
   const handleDelete = () => {
-    deleteEntry(selectedBook, selectedTest);
+    deleteEntry(selectedBook, selectedTestNum);
     setConfirmDelete(false);
   };
 
   const handleDecrement = (step, idx) => {
     const subject = step === "vocab" || step === "review" ? "reading" : "listening";
-    decrementReview(selectedBook, selectedTest, subject, idx);
+    decrementReview(selectedBook, selectedTestNum, subject, idx);
   };
 
   const hasEntry = entry !== null;
@@ -197,12 +194,12 @@ export function StudyLog({ onExport, onImport }) {
             value={selectedBook}
             onChange={(e) => {
               const b = Number(e.target.value);
-              setSelectedBook(b);
+              onBookChange(b);
               const tests = allEntries()
                 .filter((x) => x.book === b)
                 .map((x) => x.testNum)
                 .sort((a, b) => a - b);
-              setSelectedTest(tests[0] ?? 1);
+              onTestNumChange(tests[0] ?? 1);
             }}
             className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white outline-none focus:border-indigo-400 cursor-pointer"
           >
@@ -216,8 +213,8 @@ export function StudyLog({ onExport, onImport }) {
         <div className="flex items-center gap-2">
           <span className="text-sm text-slate-500 font-medium">Test</span>
           <select
-            value={selectedTest}
-            onChange={(e) => setSelectedTest(Number(e.target.value))}
+            value={selectedTestNum}
+            onChange={(e) => onTestNumChange(Number(e.target.value))}
             className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white outline-none focus:border-indigo-400 cursor-pointer"
           >
             {Array.from({ length: 4 }, (_, i) => i + 1).map((n) => (
@@ -306,7 +303,7 @@ export function StudyLog({ onExport, onImport }) {
       {!hasEntry ? (
         <div className="text-center py-14 bg-slate-50 rounded-xl border border-dashed border-slate-300">
           <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500 font-medium">No entry for Cambridge {selectedBook} — Test {selectedTest}</p>
+          <p className="text-slate-500 font-medium">No entry for Cambridge {selectedBook} — Test {selectedTestNum}</p>
           <p className="text-slate-400 text-sm mt-1">Click "Add" to create it</p>
         </div>
       ) : (
@@ -318,7 +315,7 @@ export function StudyLog({ onExport, onImport }) {
             steps={L_STEPS}
             rowPrefix="S"
             accent={{ iconBg: "bg-blue-100", iconColor: "text-blue-600", text: "text-blue-700", ring: "#3b82f6" }}
-            onToggle={(step, idx) => toggleStep(selectedBook, selectedTest, "listening", idx, step)}
+            onToggle={(step, idx) => toggleStep(selectedBook, selectedTestNum, "listening", idx, step)}
             onDecrement={handleDecrement}
           />
           <SubjectBlock
@@ -328,7 +325,7 @@ export function StudyLog({ onExport, onImport }) {
             steps={R_STEPS}
             rowPrefix="P"
             accent={{ iconBg: "bg-emerald-100", iconColor: "text-emerald-600", text: "text-emerald-700", ring: "#10b981" }}
-            onToggle={(step, idx) => toggleStep(selectedBook, selectedTest, "reading", idx, step)}
+            onToggle={(step, idx) => toggleStep(selectedBook, selectedTestNum, "reading", idx, step)}
             onDecrement={handleDecrement}
           />
         </div>
@@ -341,7 +338,7 @@ export function StudyLog({ onExport, onImport }) {
             <h4 className="text-lg font-bold text-slate-800">Delete study record</h4>
             <p className="text-slate-600 text-sm">
               Are you sure you want to delete all progress for{" "}
-              <strong>Cambridge {selectedBook} — Test {selectedTest}</strong>?
+              <strong>Cambridge {selectedBook} — Test {selectedTestNum}</strong>?
               This cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
