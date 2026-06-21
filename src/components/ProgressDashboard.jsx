@@ -37,6 +37,7 @@ export function ProgressDashboard({
   const [filterBook, setFilterBook] = useState("All");
   const [sortMode, setSortMode] = useState("time"); // "time" | "book"
   const [sortDir, setSortDir] = useState("desc");    // "asc"  | "desc"
+  const [hiddenSubjects, setHiddenSubjects] = useState(new Set());
 
   const filteredRecords =
     filterBook === "All"
@@ -76,6 +77,17 @@ export function ProgressDashboard({
     }),
   }));
 
+  const visibleSeries = subjectSeries.filter((s) => !hiddenSubjects.has(s.label));
+
+  const toggleSubject = (label) => {
+    setHiddenSubjects((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-6">
 
@@ -99,20 +111,30 @@ export function ProgressDashboard({
           </h3>
           {/* Legend */}
           <div className="flex flex-wrap gap-3">
-            {SUBJECT_SERIES.map((s) => (
-              <div key={s.key} className="flex items-center gap-1.5">
-                <span
-                  className="w-3 h-3 rounded-full inline-block"
-                  style={{ backgroundColor: s.color }}
-                />
-                <span className="text-xs text-slate-500 font-medium">
-                  {s.label}
-                </span>
-              </div>
-            ))}
+            {SUBJECT_SERIES.map((s) => {
+              const isHidden = hiddenSubjects.has(s.label);
+              return (
+                <div
+                  key={s.key}
+                  className="flex items-center gap-1.5 cursor-pointer select-none"
+                  onClick={() => toggleSubject(s.label)}
+                  title={isHidden ? "Click to show" : "Click to hide"}
+                >
+                  <span
+                    className={`w-3 h-3 rounded-full inline-block transition-opacity ${isHidden ? "opacity-30" : "opacity-100"}`}
+                    style={{ backgroundColor: s.color }}
+                  />
+                  <span
+                    className={`text-xs font-medium transition-colors ${isHidden ? "text-slate-300 line-through" : "text-slate-500"}`}
+                  >
+                    {s.label}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
-        <ProgressLineChart labels={labels} series={subjectSeries} />
+        <ProgressLineChart labels={labels} series={visibleSeries} />
         <p className="text-[11px] text-slate-400 mt-2 text-center">
           Lines skip subjects not recorded in a given attempt.
         </p>
