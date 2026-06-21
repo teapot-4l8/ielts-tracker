@@ -38,6 +38,7 @@ export function ProgressDashboard({
   const [sortMode, setSortMode] = useState("time"); // "time" | "book"
   const [sortDir, setSortDir] = useState("desc");    // "asc"  | "desc"
   const [hiddenSubjects, setHiddenSubjects] = useState(new Set());
+  const [chartSortMode, setChartSortMode] = useState("book"); // "time" | "book"
 
   const filteredRecords =
     filterBook === "All"
@@ -55,12 +56,15 @@ export function ProgressDashboard({
     return sortDir === "asc" ? cmp : -cmp;
   });
 
-  // Sort by book → testNum for chart x-axis
-  const chartRecords = [...records].sort(
-    (a, b) => a.book - b.book || a.testNum - b.testNum
-  );
+  // Sort for chart x-axis
+  const chartRecords = [...records].sort((a, b) => {
+    if (chartSortMode === "time") {
+      return a.timestamp - b.timestamp;
+    }
+    return a.book - b.book || a.testNum - b.testNum;
+  });
 
-  // X-axis labels e.g. "C4-T1", "C4-T2"
+  // X-axis labels: always C#-T# format; date info shown in tooltip only
   const labels = chartRecords.map((r) => `C${r.book}-T${r.testNum}`);
 
   // ── Chart data ─────────────────────────────────────────────────────────────
@@ -106,9 +110,38 @@ export function ProgressDashboard({
       {/* ── Row 2: Four-subject trend ──────────────────────────────────────── */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
-          <h3 className="text-lg font-bold text-slate-800">
-            Subject Score Trends
-          </h3>
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg font-bold text-slate-800">
+              Subject Score Trends
+            </h3>
+            {/* Chart sort toggle */}
+            <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-lg p-1">
+              <button
+                onClick={() => setChartSortMode("time")}
+                title="Sort by date"
+                className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-md transition-colors ${
+                  chartSortMode === "time"
+                    ? "bg-white text-indigo-700 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                Time
+              </button>
+              <button
+                onClick={() => setChartSortMode("book")}
+                title="Sort by book & test number"
+                className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-md transition-colors ${
+                  chartSortMode === "book"
+                    ? "bg-white text-indigo-700 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <BarChart2 className="w-3.5 h-3.5" />
+                Book
+              </button>
+            </div>
+          </div>
           {/* Legend */}
           <div className="flex flex-wrap gap-3">
             {SUBJECT_SERIES.map((s) => {

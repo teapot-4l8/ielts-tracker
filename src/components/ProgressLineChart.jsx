@@ -113,7 +113,7 @@ export function ProgressLineChart({ labels = [], series = [], height = 280 }) {
         scaleSize: 16,
         itemStyle: { shadowBlur: 8, shadowColor: s.color + "66" },
       },
-      connectNulls: false,
+      connectNulls: true,
       smooth: false,
     })),
   };
