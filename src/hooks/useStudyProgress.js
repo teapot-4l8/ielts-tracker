@@ -15,9 +15,9 @@ import { triggerAutoSave } from "../utils/autoSave";
  *       { done: false, intensive: false, shadowing: false },  // S4
  *     ],
  *     reading: [
- *       { done: false, vocab: false, review: 0 },              // P1  (review is a click counter)
- *       { done: false, vocab: false, review: 0 },              // P2
- *       { done: false, vocab: false, review: 0 },              // P3
+ *       { done: false, vocab: 0, review: 0 },               // P1  (vocab & review are click counters)
+ *       { done: false, vocab: 0, review: 0 },               // P2
+ *       { done: false, vocab: 0, review: 0 },               // P3
  *     ],
  *   },
  *   ...
@@ -36,7 +36,7 @@ function makeListeningSections() {
 }
 
 function makeReadingPassages() {
-  return Array.from({ length: 3 }, () => ({ done: false, vocab: false, review: 0 }));
+  return Array.from({ length: 3 }, () => ({ done: false, vocab: 0, review: 0 }));
 }
 
 function load() {
@@ -139,8 +139,10 @@ export function useStudyProgress() {
 
         const list = entry[subject].map((item, i) => {
           if (i !== index) return item;
-          if (step === "review") {
-            return { ...item, review: (item.review ?? 0) + 1 };
+          // Counter steps (vocab & review): increment on click
+          if (step === "review" || step === "vocab") {
+            const prev = typeof item[step] === "number" ? item[step] : (item[step] ? 1 : 0);
+            return { ...item, [step]: prev + 1 };
           }
           return { ...item, [step]: !item[step] };
         });
@@ -158,18 +160,20 @@ export function useStudyProgress() {
   );
 
   /**
-   * Decrement a review counter (does not go below 0).
+   * Decrement a counter step (vocab or review). Does not go below 0.
    */
-  const decrementReview = useCallback(
-    (book, testNum, subject, index) => {
+  const decrementCounter = useCallback(
+    (book, testNum, subject, index, step) => {
       setProgress((prev) => {
         const key = `${book}-${testNum}`;
         const entry = prev[key];
         if (!entry) return prev;
-        const current = entry[subject][index]?.review ?? 0;
+        const current = typeof entry[subject][index]?.[step] === "number"
+          ? entry[subject][index][step]
+          : (entry[subject][index]?.[step] ? 1 : 0);
         if (current <= 0) return prev;
         const list = entry[subject].map((item, i) =>
-          i === index ? { ...item, review: current - 1 } : item
+          i === index ? { ...item, [step]: current - 1 } : item
         );
         const next = {
           ...prev,
@@ -259,5 +263,5 @@ export function useStudyProgress() {
     EventBus.emit("study-progress-changed", data);
   }, []);
 
-  return { progress, toggleStep, decrementReview, getEntry, allEntries, deleteEntry, initEntry, markDoneFromRecord, setProgress, reload };
+  return { progress, toggleStep, decrementCounter, getEntry, allEntries, deleteEntry, initEntry, markDoneFromRecord, setProgress, reload };
 }

@@ -91,7 +91,7 @@ function ItemRow({ rowLabel, steps, item, onToggle, onDecrement }) {
             label={s.label}
             bgColor={s.color}
             onClick={() => onToggle(s.key)}
-            onShiftClick={s.key === "review" ? () => onDecrement(s.key) : undefined}
+            onShiftClick={(s.key === "review" || s.key === "vocab") ? () => onDecrement(s.key) : undefined}
           />
         ))}
       </div>
@@ -142,7 +142,7 @@ function SubjectBlock({ title, Icon, items, steps, accent, rowPrefix, onToggle, 
 const AVAILABLE_BOOKS = Array.from({ length: 19 }, (_, i) => i + 4); // 4–22
 
 export function StudyLog({ onExport, onImport, selectedBook, selectedTestNum, onBookChange, onTestNumChange }) {
-  const { progress, toggleStep, decrementReview, getEntry, allEntries, deleteEntry, initEntry, setProgress } = useStudyProgress();
+  const { progress, toggleStep, decrementCounter, getEntry, allEntries, deleteEntry, initEntry, setProgress } = useStudyProgress();
 
   // Re-load when another hook instance (e.g. App.jsx) writes to localStorage
   useEffect(() => {
@@ -172,7 +172,7 @@ export function StudyLog({ onExport, onImport, selectedBook, selectedTestNum, on
 
   const handleDecrement = (step, idx) => {
     const subject = step === "vocab" || step === "review" ? "reading" : "listening";
-    decrementReview(selectedBook, selectedTestNum, subject, idx);
+    decrementCounter(selectedBook, selectedTestNum, subject, idx, step);
   };
 
   const hasEntry = entry !== null;

@@ -27,6 +27,13 @@ src/
 - Export: downloads `ielts-records-YYYY-MM-DD.json`
 - Import: merges JSON, deduplicates by `id`
 
+## Study Progress Schema
+- localStorage key: `"ielts_study_progress"`
+- Listening: `{ done: bool, intensive: bool, shadowing: bool }` × 4 sections
+- Reading: `{ done: bool, vocab: number (counter), review: number (counter) }` × 3 passages
+- vocab & review are click counters (left-click +1, right-click -1, min 0)
+- Old data compat: boolean `true` treated as `1`, `false` as `0`
+
 ## Key Libraries
 - lucide-react (icons), tailwindcss (styling)
 - Gemini API model: `gemini-2.5-flash-preview-09-2025` (API key left blank in geminiApi.js)
